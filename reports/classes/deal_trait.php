@@ -34,20 +34,6 @@ class ReportTrait
   }
 
 
-  private function getDealStageHistories(): void
-  {
-    $this->history = \Bitrix\Crm\History\Entity\DealStageHistoryTable::getList([
-      'select' => [ 'ID', 'STAGE_ID', 'OWNER_ID', 'CREATED_TIME', 'START_DATE' ],
-      'filter' => [
-        '=TYPE_ID' => 2,
-        '=CATEGORY_ID' => $this->category_id,
-        '>=START_DATE' => $this->date_from,
-        '<=START_DATE' => $this->date_to,
-      ],
-      'order' => [ 'ID' => 'DESC' ],
-    ])->fetchAll();
-  }
-
   private function getDeals(): void
   {
     $filter = [];
@@ -92,6 +78,20 @@ class ReportTrait
     ])->fetchAll();
   }
   
+  private function getDealStageHistories(): void
+  {
+    $this->history = \Bitrix\Crm\History\Entity\DealStageHistoryTable::getList([
+      'select' => [ 'ID', 'STAGE_ID', 'OWNER_ID', 'CREATED_TIME', 'START_DATE' ],
+      'filter' => [
+        '=TYPE_ID' => 2,
+        '=CATEGORY_ID' => $this->category_id,
+        '>=START_DATE' => $this->date_from,
+        '<=START_DATE' => $this->date_to,
+      ],
+      'order' => [ 'ID' => 'DESC' ],
+    ])->fetchAll();
+  }
+
   private function prepareResults(): void
   {
     $deps = \Bitrix\Main\UserUtils::getDepartmentNames(

@@ -13,12 +13,16 @@ require_once('./constants.php');
 
 $APPLICATION->includeComponent('bitrix:main.ui.filter', '', [
   'FILTER_ID' => 'AGONTSOV_REPORT_FILTER',
-  'GRID_ID' => 'AGONTSOV_REPORT_GRID',
+  // 'GRID_ID' => 'AGONTSOV_REPORT_GRID',
   'FILTER' => FILTERS,
   'ENABLE_LABEL' => true,
   'ENABLE_LIVE_SEARCH' => true,
   'FILTER_PRESETS' => FILTER_PRESETS
 ]);
+
+// $rrrtertgf = \Bitrix\Main\UI\Filter\Actions::getList();
+// print_r(json_encode($rrrtertgf));
+// header("Refresh:0");
 
 $filterOptions = new \Bitrix\Main\UI\Filter\Options('AGONTSOV_REPORT_FILTER');
 $filterFields = $filterOptions->getFilter(FILTERS);
@@ -43,37 +47,67 @@ $date_to = $filterFields['DATE_MODIFY_to'];
 
 <?
 
-// if ($reportTypeId == 1) {
-  $data = \Bitrix\Crm\DealTable::getList([
-    'select' => [ 'ID', 'TITLE', 'STAGE_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE', 'DATE_MODIFY' ],
-    'filter' => $logicFilter,
-    'limit' => 11,
-  ])->fetchAll();
+?>
 
-  $rows = array_map(fn($k, $d) => [
-    'id' => $k++,
-    'columns' => $d,
-  ], [1], $data);
+<script type="text/javascript">
+  const filter = document.getElementById('AGONTSOV_REPORT_FILTER_search_container');
+  console.log(filter);
+  filter.addEventListener('click', e => {
+    alert('filter clicked');
+    // window.reload();
+  });
+  filter.addEventListener('change', e => {
+    alert('filter changed');
+    // window.reload();
+  });
 
-  // $nav = new \Bitrix\Main\UI\PageNavigation("nav-less-news");
-  // $nav->allowAllRecords(true)
-  // 	->setPageSize(5)
-  // 	->initFromUri();
+  const button = document.getElementsByClassName('ui-btn ui-btn-primary ui-btn-icon-search main-ui-filter-field-button  main-ui-filter-find');
+  const filterAcceptButton = button[0];
+  if (filterAcceptButton == null) {
+    alert('filterAcceptButton == null');
+    return;
+  } else {
+    alert('filterAcceptButton != null');
+  }
+
+filterAcceptButton.addEventListener('click', e => {
+  alert('filterAcceptButton clicked');
+  window.reload();
+});
+</script>
+
+<?
+
+  // $data = \Bitrix\Crm\DealTable::getList([
+  //   'select' => [ 'ID', 'TITLE', 'STAGE_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE', 'DATE_MODIFY' ],
+  //   'filter' => $logicFilter,
+  //   'limit' => 11,
+  // ])->fetchAll();
+
+  // $rows = array_map(fn($k, $d) => [
+  //   'id' => $k++,
+  //   'columns' => $d,
+  // ], [1], $data);
+
+  // // $nav = new \Bitrix\Main\UI\PageNavigation("nav-less-news");
+  // // $nav->allowAllRecords(true)
+  // // 	->setPageSize(5)
+  // // 	->initFromUri();
     
-  $APPLICATION->includeComponent('bitrix:main.ui.grid', '', [
-    'GRID_ID' => 'AGONTSOV_REPORT_GRID',
-    'ROWS' => empty($reportTypeId) ? [] : $rows,
-    'COLUMNS' => COLUMNS,
-    'AJAX_MODE' => 'Y',
-    'CURRENT_PAGE' => 1,
-    // 'STUB' => 'Не удалось получить данные',
-    'SHOW_ROW_CHECKBOXES' => false,
-    'SHOW_CHECK_ALL_CHECKBOXES' => false,
-    'SHOW_PAGINATION' => true,
-    'SHOW_MORE_BUTTON' => true,
-    'ALLOW_COLUMNS_SORT' => false,
-    'ALLOW_ROWS_SORT' => false,
-  ]);
+  // $APPLICATION->includeComponent('bitrix:main.ui.grid', '', [
+  //   'GRID_ID' => 'AGONTSOV_REPORT_GRID',
+  //   'ROWS' => empty($reportTypeId) ? [] : $rows,
+  //   'COLUMNS' => COLUMNS,
+  //   'AJAX_MODE' => 'Y',
+  //   'CURRENT_PAGE' => 1,
+  //   // 'STUB' => 'Не удалось получить данные',
+  //   'SHOW_ROW_CHECKBOXES' => false,
+  //   'SHOW_CHECK_ALL_CHECKBOXES' => false,
+  //   'SHOW_PAGINATION' => true,
+  //   'SHOW_MORE_BUTTON' => true,
+  //   'ALLOW_COLUMNS_SORT' => false,
+  //   'ALLOW_ROWS_SORT' => false,
+  // ]);
 
   // $APPLICATION->IncludeComponent(
   // 	"bitrix:main.pagenavigation",
@@ -85,7 +119,6 @@ $date_to = $filterFields['DATE_MODIFY_to'];
   // 	),
   // 	false
   // );
-// }
 
 require($_SERVER['DOCUMENT_ROOT'].'/bitrix/footer.php');
 ?>

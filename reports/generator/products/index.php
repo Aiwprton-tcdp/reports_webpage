@@ -32,16 +32,19 @@ function createFile($pt): void
   $xlsx->addSheet(createDataTemplateMain($pt), 'Единый отчёт');
   $xlsx->setColWidth(2, 30);
 
+  // print_r(json_encode($pt->deals['PRODUCTS']));
+  // return;
+
   foreach ($pt->deals['PRODUCTS'] as $PRODUCT) {
     if (empty($pt->deals['DEALS'][$PRODUCT['ID']])) continue;
 
-    $name = mb_substr(
-      \Cutil::translit(
-        (string)$PRODUCT['NAME'],
-        'ru',
-        [ 'replace_space' => ' ', 'replace_other' => '-', 'change_case' => false]
-      ), 0, 31);
-    $xlsx->addSheet(createDataTemplatePage($pt, $PRODUCT['ID']), $name);
+    // $name = mb_substr(
+    //   \Cutil::translit(
+    //     (string)$PRODUCT['NAME'],
+    //     'ru',
+    //     [ 'replace_space' => ' ', 'replace_other' => '-', 'change_case' => false]
+    //   ), 0, 31);
+    $xlsx->addSheet(createDataTemplatePage($pt, $PRODUCT['ID']), $PRODUCT['NAME']);
     $xlsx->setColWidth(2, 30);
   }
 
@@ -57,18 +60,21 @@ function createDataTemplateMain($pt): array
   $listData = [[
     'Название продукта',
     'БЮ Продукта',
-    'Кол-во сделок в стадии "Обработка"',
-    'Кол-во сделок в стадии "Выявление потребности"',
-    'Кол-во сделок в стадии "Брифинг"',
-    'Кол-во сделок в стадии "Подготовка стратегии / КП"',
-    'Кол-во сделок в стадии "Стратегия / КП - отправлена"',
-    'Кол-во сделок в стадии "Переговоры по КП"',
-    'Кол-во сделок в стадии "Ожидание решения"',
-    'Кол-во сделок в стадии "Заключение договора"',
-    'Кол-во сделок в стадии "Договор подписан"',
-    'Кол-во сделок в стадии "Передача на аккаунтинг"',
-    'Кол-во сделок в стадиях Архив и Завершение сотрудничества',
-    'ВСЕГО',
+    'Кол-во КП/Под-а стра или КП',
+    'Кол-во продаж/Заключения дог-а',
+    'CR, в %',
+    // 'Кол-во сделок в стадии "Обработка"',
+    // 'Кол-во сделок в стадии "Выявление потребности"',
+    // 'Кол-во сделок в стадии "Брифинг"',
+    // 'Кол-во сделок в стадии "Подготовка стратегии / КП"',
+    // 'Кол-во сделок в стадии "Стратегия / КП - отправлена"',
+    // 'Кол-во сделок в стадии "Переговоры по КП"',
+    // 'Кол-во сделок в стадии "Ожидание решения"',
+    // 'Кол-во сделок в стадии "Заключение договора"',
+    // 'Кол-во сделок в стадии "Договор подписан"',
+    // 'Кол-во сделок в стадии "Передача на аккаунтинг"',
+    // 'Кол-во сделок в стадиях Архив и Завершение сотрудничества',
+    // 'ВСЕГО',
   ]];
 
   foreach ($pt->deals['PRODUCTS'] as $PRODUCT) {
@@ -106,21 +112,28 @@ function createDataTemplateMain($pt): array
         $totalDealsCount += count($pt->deals['DEALS_BY_STAGES'][$stageId][$productID]);
       }
     }
+
+    $PREPARATION_count = count($deals['DEALS_BY_STAGES']['C22:PREPARATION'][$productID] ?? []);
+    $UC_XJPR5R_count = count($deals['DEALS_BY_STAGES']['C22:UC_XJPR5R'][$productID] ?? []);
+
     $listString = [
       $PRODUCT['NAME'],
       $PRODUCT['UNIT_SECTION']['NAME'],
-      (isset($pt->deals['DEALS_BY_STAGES']['C22:UC_GR0G8F'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:UC_GR0G8F'][$productID]) : 0),
-      (isset($pt->deals['DEALS_BY_STAGES']['C22:UC_44PJ08'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:UC_44PJ08'][$productID]) : 0),
-      (isset($pt->deals['DEALS_BY_STAGES']['C22:NEW'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:NEW'][$productID]) : 0),
-      (isset($pt->deals['DEALS_BY_STAGES']['C22:PREPARATION'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:PREPARATION'][$productID]) : 0),
-      (isset($pt->deals['DEALS_BY_STAGES']['C22:PREPAYMENT_INVOIC'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:PREPAYMENT_INVOIC'][$productID]) : 0),
-      (isset($pt->deals['DEALS_BY_STAGES']['C22:EXECUTING'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:EXECUTING'][$productID]) : 0),
-      (isset($pt->deals['DEALS_BY_STAGES']['C22:FINAL_INVOICE'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:FINAL_INVOICE'][$productID]) : 0),
-      (isset($pt->deals['DEALS_BY_STAGES']['C22:UC_QP7BZQ'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:UC_QP7BZQ'][$productID]) : 0),
-      (isset($pt->deals['DEALS_BY_STAGES']['C22:UC_XJPR5R'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:UC_XJPR5R'][$productID]) : 0),
-      (isset($pt->deals['DEALS_BY_STAGES']['C22:UC_4Z82CF'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:UC_4Z82CF'][$productID]) : 0),
-      $finalStatusCount,
-      $totalDealsCount,
+      $PREPARATION_count,
+      $UC_XJPR5R_count,
+      $UC_XJPR5R_count / ($PREPARATION_count || 1) * 100,
+      // (isset($pt->deals['DEALS_BY_STAGES']['C22:UC_GR0G8F'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:UC_GR0G8F'][$productID]) : 0),
+      // (isset($pt->deals['DEALS_BY_STAGES']['C22:UC_44PJ08'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:UC_44PJ08'][$productID]) : 0),
+      // (isset($pt->deals['DEALS_BY_STAGES']['C22:NEW'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:NEW'][$productID]) : 0),
+      // (isset($pt->deals['DEALS_BY_STAGES']['C22:PREPARATION'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:PREPARATION'][$productID]) : 0),
+      // (isset($pt->deals['DEALS_BY_STAGES']['C22:PREPAYMENT_INVOIC'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:PREPAYMENT_INVOIC'][$productID]) : 0),
+      // (isset($pt->deals['DEALS_BY_STAGES']['C22:EXECUTING'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:EXECUTING'][$productID]) : 0),
+      // (isset($pt->deals['DEALS_BY_STAGES']['C22:FINAL_INVOICE'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:FINAL_INVOICE'][$productID]) : 0),
+      // (isset($pt->deals['DEALS_BY_STAGES']['C22:UC_QP7BZQ'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:UC_QP7BZQ'][$productID]) : 0),
+      // (isset($pt->deals['DEALS_BY_STAGES']['C22:UC_XJPR5R'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:UC_XJPR5R'][$productID]) : 0),
+      // (isset($pt->deals['DEALS_BY_STAGES']['C22:UC_4Z82CF'][$productID]) ? count($pt->deals['DEALS_BY_STAGES']['C22:UC_4Z82CF'][$productID]) : 0),
+      // $finalStatusCount,
+      // $totalDealsCount,
     ];
     $listData[] = $listString;
   }
@@ -147,11 +160,17 @@ function createDataTemplatePage($pt, $productID): array
     'ВСЕГО',
   ];
   $listData = [
-    $arHeadersAll
+    [
+      'ФИ МОП',
+      'БЮ МОП',
+      'Продукт БЮ',
+      'Кол-во КП',
+      'Кол-во продаж',
+      'CR, в %',
+    ]
   ];
 
   foreach ($pt->deals['DEALS_BY_RESPONSIBLE'][$productID] as $userID => $stagesArr) {
-
     $totalDealsCount = 0;
     $finalStatusCount = 0;
     $finalStatusStages = [
@@ -182,23 +201,25 @@ function createDataTemplatePage($pt, $productID): array
         $totalDealsCount += count($stagesArr[$stageId]);
       }
     }
-    $listString = [
-      $pt->users[$userID]['LAST_NAME'].' '.$pt->users[$userID]['NAME'].' '.$pt->users[$userID]['SECOND_NAME'],
-      $pt->users[$userID]['UNIT_SECTION']['NAME'],
-      (isset($stagesArr['C22:UC_GR0G8F']) ? count($stagesArr['C22:UC_GR0G8F']) : 0),
-      (isset($stagesArr['C22:UC_44PJ08']) ? count($stagesArr['C22:UC_44PJ08']) : 0),
-      (isset($stagesArr['C22:NEW']) ? count($stagesArr['C22:NEW']) : 0),
-      (isset($stagesArr['C22:PREPARATION']) ? count($stagesArr['C22:PREPARATION']) : 0),
-      (isset($stagesArr['C22:PREPAYMENT_INVOIC']) ? count($stagesArr['C22:PREPAYMENT_INVOIC']) : 0),
-      (isset($stagesArr['C22:EXECUTING']) ? count($stagesArr['C22:EXECUTING']) : 0),
-      (isset($stagesArr['C22:FINAL_INVOICE']) ? count($stagesArr['C22:FINAL_INVOICE']) : 0),
-      (isset($stagesArr['C22:UC_QP7BZQ']) ? count($stagesArr['C22:UC_QP7BZQ']) : 0),
-      (isset($stagesArr['C22:UC_XJPR5R']) ? count($stagesArr['C22:UC_XJPR5R']) : 0),
-      (isset($stagesArr['C22:UC_4Z82CF']) ? count($stagesArr['C22:UC_4Z82CF']) : 0),
-      $finalStatusCount,
-      $totalDealsCount,
-    ];
-    $listData[] = $listString;
+
+    $user = $pt->users[array_search($userID, $pt->users_ids)];
+    $PREPARATION_count = count($stagesArr['C22:PREPARATION'] ?? []);
+    $UC_XJPR5R_count = count($stagesArr['C22:UC_XJPR5R'] ?? []);
+
+    if (isset($listData[$user['LAST_NAME'].' '.$user['NAME']])) {
+      $listData[$user['LAST_NAME'].' '.$user['NAME']][3] += $PREPARATION_count;
+      $listData[$user['LAST_NAME'].' '.$user['NAME']][4] += $UC_XJPR5R_count;
+      $listData[$user['LAST_NAME'].' '.$user['NAME']][5] = $listData[$user['LAST_NAME'].' '.$user['NAME']][43] / ($listData[$user['LAST_NAME'].' '.$user['NAME']][3] || 1) * 100;
+    } else {
+      $listData[$user['LAST_NAME'].' '.$user['NAME']] = [
+        $user['LAST_NAME'].' '.$user['NAME'],
+        $user['DepartmentName'],
+        $pt->deals['PRODUCTS'][$productID]['NAME'],
+        $PREPARATION_count,
+        $UC_XJPR5R_count,
+        $UC_XJPR5R_count / ($PREPARATION_count || 1) * 100,
+      ];
+    }
   }
 
   return $listData;
