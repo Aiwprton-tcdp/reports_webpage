@@ -13,16 +13,26 @@ use Bitrix\Main\Application;
 \Bitrix\Main\Loader::includeModule('crm');
 
 
+const allStatusStages = [
+  'C22:UC_GR0G8F',
+  'C22:UC_44PJ08',
+  'C22:NEW',
+  'C22:PREPARATION',
+  'C22:PREPAYMENT_INVOIC',
+  'C22:EXECUTING',
+  'C22:FINAL_INVOICE',
+  'C22:UC_QP7BZQ',
+  'C22:UC_XJPR5R',
+  'C22:UC_4Z82CF',
+  'C22:APOLOGY',
+  'C22:LOSE',
+];
+
+
 function initReport($pt): void
 {
-  // $deals = $pt->deals['PRODUCTS'];
-  // print_r($deals);
-  // print_r(json_encode($deals));
-  // getProducts();
   createFile($pt);
 }
-
-
 
 function createFile($pt): void
 {
@@ -32,21 +42,19 @@ function createFile($pt): void
   $xlsx->addSheet(createDataTemplateMain($pt), 'Единый отчёт');
   $xlsx->setColWidth(2, 30);
 
-  // print_r(json_encode($pt->deals['PRODUCTS']));
-  // return;
+  $products_names = array_reduce($pt->deals['PRODUCTS'], function ($result, $item) {
+    $item = (array) $item;
+    $result[$item['UNIT_SECTION']['NAME']][] = $item['ID'];
+    return $result;
+  }, []);
 
-  foreach ($pt->deals['PRODUCTS'] as $PRODUCT) {
-    if (empty($pt->deals['DEALS'][$PRODUCT['ID']])) continue;
+  foreach ($products_names as $name => $product_ids) {
+    $exists_product_ids = array_filter($product_ids, fn($id) => !empty($pt->deals['DEALS'][$id]));
 
-    // $name = mb_substr(
-    //   \Cutil::translit(
-    //     (string)$PRODUCT['NAME'],
-    //     'ru',
-    //     [ 'replace_space' => ' ', 'replace_other' => '-', 'change_case' => false]
-    //   ), 0, 31);
-    $xlsx->addSheet(createDataTemplatePage($pt, $PRODUCT['ID']), $PRODUCT['NAME']);
+    $xlsx->addSheet(createDataTemplatePage($pt, $exists_product_ids), $name);
     $xlsx->setColWidth(2, 30);
   }
+  // return;
 
   $xlsx->saveAs($fileName);
   str_replace(Application::getDocumentRoot(), '', $fileName);
@@ -141,7 +149,7 @@ function createDataTemplateMain($pt): array
   return $listData;
 }
 
-function createDataTemplatePage($pt, $productID): array
+function createDataTemplatePage($pt, $product_ids): array
 {
   $arHeadersAll = [
     $pt->deals['PRODUCTS'][$productID]['NAME'],
@@ -170,55 +178,49 @@ function createDataTemplatePage($pt, $productID): array
     ]
   ];
 
-  foreach ($pt->deals['DEALS_BY_RESPONSIBLE'][$productID] as $userID => $stagesArr) {
-    $totalDealsCount = 0;
-    $finalStatusCount = 0;
-    $finalStatusStages = [
-      'C22:APOLOGY',
-      'C22:LOSE',
-    ];
-    foreach ($finalStatusStages as $stageId) {
-      if (is_array($stagesArr[$stageId])) {
-        $finalStatusCount += count($stagesArr[$stageId]);
-      }
-    }
-    $allStatusStages = [
-      'C22:UC_GR0G8F',
-      'C22:UC_44PJ08',
-      'C22:NEW',
-      'C22:PREPARATION',
-      'C22:PREPAYMENT_INVOIC',
-      'C22:EXECUTING',
-      'C22:FINAL_INVOICE',
-      'C22:UC_QP7BZQ',
-      'C22:UC_XJPR5R',
-      'C22:UC_4Z82CF',
-      'C22:APOLOGY',
-      'C22:LOSE',
-    ];
-    foreach ($allStatusStages as $stageId) {
-      if (isset($stagesArr[$stageId])) {
-        $totalDealsCount += count($stagesArr[$stageId]);
-      }
-    }
+  $DEALS_BY_RESPONSIBLE = array_filter(
+    $pt->deals['DEALS_BY_RESPONSIBLE'],
+    fn($dbr) => in_array($dbr, $product_ids),
+    ARRAY_FILTER_USE_KEY
+  );
 
-    $user = $pt->users[array_search($userID, $pt->users_ids)];
-    $PREPARATION_count = count($stagesArr['C22:PREPARATION'] ?? []);
-    $UC_XJPR5R_count = count($stagesArr['C22:UC_XJPR5R'] ?? []);
-
-    if (isset($listData[$user['LAST_NAME'].' '.$user['NAME']])) {
-      $listData[$user['LAST_NAME'].' '.$user['NAME']][3] += $PREPARATION_count;
-      $listData[$user['LAST_NAME'].' '.$user['NAME']][4] += $UC_XJPR5R_count;
-      $listData[$user['LAST_NAME'].' '.$user['NAME']][5] = $listData[$user['LAST_NAME'].' '.$user['NAME']][43] / ($listData[$user['LAST_NAME'].' '.$user['NAME']][3] || 1) * 100;
-    } else {
-      $listData[$user['LAST_NAME'].' '.$user['NAME']] = [
-        $user['LAST_NAME'].' '.$user['NAME'],
-        $user['DepartmentName'],
-        $pt->deals['PRODUCTS'][$productID]['NAME'],
-        $PREPARATION_count,
-        $UC_XJPR5R_count,
-        $UC_XJPR5R_count / ($PREPARATION_count || 1) * 100,
+  foreach ($DEALS_BY_RESPONSIBLE as $productID => $data) {
+    foreach ($data as $userID => $stagesArr) {
+      $totalDealsCount = 0;
+      $finalStatusCount = 0;
+      $finalStatusStages = [
+        'C22:APOLOGY',
+        'C22:LOSE',
       ];
+      foreach ($finalStatusStages as $stageId) {
+        if (is_array($stagesArr[$stageId])) {
+          $finalStatusCount += count($stagesArr[$stageId]);
+        }
+      }
+      foreach (allStatusStages as $stageId) {
+        if (isset($stagesArr[$stageId])) {
+          $totalDealsCount += count($stagesArr[$stageId]);
+        }
+      }
+
+      $user = $pt->users[array_search($userID, $pt->users_ids)];
+      $PREPARATION_count = count($stagesArr['C22:PREPARATION'] ?? []);
+      $UC_XJPR5R_count = count($stagesArr['C22:UC_XJPR5R'] ?? []);
+
+      if (isset($listData[$user['LAST_NAME'].' '.$user['NAME']])) {
+        $listData[$user['LAST_NAME'].' '.$user['NAME']][3] += $PREPARATION_count;
+        $listData[$user['LAST_NAME'].' '.$user['NAME']][4] += $UC_XJPR5R_count;
+        $listData[$user['LAST_NAME'].' '.$user['NAME']][5] = $listData[$user['LAST_NAME'].' '.$user['NAME']][43] / ($listData[$user['LAST_NAME'].' '.$user['NAME']][3] || 1) * 100;
+      } else {
+        $listData[$user['LAST_NAME'].' '.$user['NAME']] = [
+          $user['LAST_NAME'].' '.$user['NAME'],
+          $user['DepartmentName'],
+          $pt->deals['PRODUCTS'][$productID]['NAME'],
+          $PREPARATION_count,
+          $UC_XJPR5R_count,
+          $UC_XJPR5R_count / ($PREPARATION_count || 1) * 100,
+        ];
+      }
     }
   }
 
